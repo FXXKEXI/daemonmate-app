@@ -54,19 +54,7 @@ def handle_speech_input():
             return None
     return None
 # ---------- 语音输出（用 gtts） ----------
-def auto_speak(text, lang='zh'):
-    try:
-        tts = gTTS(text=text, lang=lang)
-        tts.save("temp_speech.mp3")
-        with open("temp_speech.mp3", "rb") as f:
-            data = f.read()
-        b64 = base64.b64encode(data).decode()
-        st.markdown(
-            f'<audio autoplay><source src="data:audio/mp3;base64,{b64}" type="audio/mp3"></audio>',
-            unsafe_allow_html=True
-        )
-    except Exception as e:
-        st.warning(f"语音合成失败: {e}")
+
 
 # ---------- 侧边栏 ----------
 with st.sidebar:
