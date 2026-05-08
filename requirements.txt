@@ -3,8 +3,6 @@ langchain
 langchain-openai
 langchain-community
 langchain-classic
-chromadb==0.4.24
-sentence-transformers
 python-dotenv
 gtts
 openai-whisper
