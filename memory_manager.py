@@ -1,18 +1,20 @@
+# memory_manager.py
 import os
 import datetime
 
-# 优先使用国内镜像，防止下载超时
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
 
+CACHE_DIR = "./huggingface_models"
+
 embeddings = HuggingFaceEmbeddings(
     model_name="shibing624/text2vec-base-chinese",
-    cache_folder="../langchain_study/huggingface_models",
-    model_kwargs={"local_files_only": True}  # 强制只从本地缓存加载，不联网
+    cache_folder=CACHE_DIR
 )
+
 PERSIST_DIR = "./daemon_memory_db"
 
 def get_vector_store():
