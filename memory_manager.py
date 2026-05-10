@@ -1,4 +1,6 @@
-import json, os, datetime
+import json
+import os
+import datetime
 
 MEMORY_DIR = "./memory_data"
 
@@ -25,14 +27,17 @@ def add_memory(user_id, conversation_text):
         "timestamp": datetime.datetime.now().isoformat(),
         "content": conversation_text
     })
+    # 只保留最近 200 条记忆
     if len(memories) > 200:
         memories = memories[-200:]
     _save_memories(user_id, memories)
+    print(f"  📝 记忆已存储 (user: {user_id})")
 
 def recall_memory(user_id, query, top_k=3):
     memories = _load_memories(user_id)
     if not memories:
         return ""
+    # 简单关键词匹配
     keywords = query.lower().split()
     scored = []
     for mem in memories:
@@ -53,3 +58,4 @@ def clear_memory(user_id):
     file_path = _get_user_file(user_id)
     if os.path.exists(file_path):
         os.remove(file_path)
+        print(f"  🗑️ 已清空 {user_id} 的所有记忆")
