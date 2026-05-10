@@ -1,4 +1,3 @@
-# core_engine.py
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
@@ -16,6 +15,26 @@ llm = ChatOpenAI(
 def chat_with_memory(user_input, user_name, daemon_name, personality, role):
     from memory_manager import recall_memory, add_memory
 
+    system_prompt = f"""..."""  # 你的 prompt 内容，这里省略，保持原样
+
+    # 检索记忆
+    memory_context = recall_memory(user_name, user_input)
+
+    if memory_context:
+        full_system_prompt = system_prompt + "\n\n" + memory_context
+    else:
+        full_system_prompt = system_prompt
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", full_system_prompt),
+        ("user", "{user_input}")
+    ])
+    chain = prompt | llm | StrOutputParser()
+    response = chain.invoke({"user_input": user_input})
+
+    # 存储记忆
+    add_memory(user_name, f"主人说：{user_input}\n{daemon_name}回答：{response}")
+    return response
     # 注意：示例代码里的花括号都用了双写 {{ }}
     system_prompt = f"""你是{daemon_name}，一个{role}。
 你的说话风格带一点{personality}的感觉，但只是语气上的点缀，不影响你解答问题。
