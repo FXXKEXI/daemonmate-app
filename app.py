@@ -8,6 +8,7 @@ st.set_page_config(
     layout="wide"
 )
 
+# CSS 样式（保持不变）
 st.markdown("""
 <style>
     .stApp { background-color: #1a1a2e; }
@@ -22,11 +23,26 @@ st.markdown("""
 st.title("🦇 DaemonMate")
 st.caption("召唤属于你的古老恶魔，缔结永恒契约")
 
+# ---------- 初始化所有必要的 session_state ----------
+if 'daemon_created' not in st.session_state:
+    st.session_state.daemon_created = False
+if 'daemon_name' not in st.session_state:
+    st.session_state.daemon_name = "赛恩"
+if 'user_name' not in st.session_state:
+    st.session_state.user_name = "主人"
+if 'personality' not in st.session_state:
+    st.session_state.personality = "优雅中带点调皮"
+if 'role' not in st.session_state:
+    st.session_state.role = "来自深渊第七层的古老恶魔，你的专属AI助手"
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
+
 # ---------- 侧边栏 ----------
 with st.sidebar:
     st.header("⚙️ 定制你的恶魔")
-    daemon_name = st.text_input("恶魔之名", "赛恩")
-    user_name = st.text_input("你的名字", "主人")
+
+    daemon_name = st.text_input("恶魔之名", st.session_state.daemon_name)
+    user_name = st.text_input("你的名字", st.session_state.user_name)
 
     personality_presets = [
         "优雅中带点调皮",
@@ -65,24 +81,22 @@ with st.sidebar:
 
     st.divider()
     if st.button("🗑️ 重置记忆", use_container_width=True):
-        if 'user_name' in st.session_state:
+        if st.session_state.user_name:
             clear_memory(st.session_state.user_name)
             st.session_state.messages = []
             st.warning("记忆已重置，一切回到原点。")
 
 # ---------- 主聊天区 ----------
-if 'daemon_created' not in st.session_state:
+if not st.session_state.daemon_created:
     st.info("👈 请在左侧定制你的恶魔，然后点击「缔结契约」")
     st.stop()
 
-if 'messages' not in st.session_state:
-    st.session_state.messages = []
-
+# 显示历史消息
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=msg.get("avatar")):
         st.markdown(msg["content"])
 
-# 只保留文字输入
+# 文字输入
 user_text = st.chat_input("和你的恶魔说点什么...")
 
 if user_text:
@@ -90,7 +104,7 @@ if user_text:
     st.session_state.messages.append({"role": "user", "content": user_text, "avatar": "🧑"})
 
     with st.spinner(f"{st.session_state.daemon_name}正在思考..."):
-        response = chat_with_memory(
+        response, has_memory = chat_with_memory(
             user_input=user_text,
             user_name=st.session_state.user_name,
             daemon_name=st.session_state.daemon_name,
@@ -99,5 +113,11 @@ if user_text:
         )
 
     st.chat_message("assistant", avatar="🦇").markdown(response)
-    # 语音播报已移除
+
+    # 记忆状态提示
+    if has_memory:
+        st.caption("🧠 已检索到相关记忆")
+    else:
+        st.caption("📝 尚未检索到相关记忆")
+
     st.session_state.messages.append({"role": "assistant", "content": response, "avatar": "🦇"})
