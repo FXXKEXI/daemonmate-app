@@ -1,61 +1,72 @@
-import json
-import os
-import datetime
+from hollow_city.memory_store import clear_profile, extract_user_facts, load_profile, recall_layers, save_profile, update_memory_layers
+from hollow_city.schemas import EmotionState, RelationshipState
 
-MEMORY_DIR = "./memory_data"
 
-def _get_user_file(user_id):
-    if not os.path.exists(MEMORY_DIR):
-        os.makedirs(MEMORY_DIR)
-    return os.path.join(MEMORY_DIR, f"{user_id}.json")
+def add_memory(user_id, conversation_text, user_input=None, assistant_response=None):
+    profile = load_profile(user_id)
+    emotion = EmotionState(**profile.get("emotion", {}))
+    relationship = RelationshipState(**profile.get("relationship", {}))
+    signal = {"manual": 1, "depth": 1}
+    update_memory_layers(
+        profile,
+        user_input or conversation_text,
+        assistant_response or "",
+        emotion,
+        relationship,
+        signal,
+    )
+    save_profile(user_id, profile)
 
-def _load_memories(user_id):
-    file_path = _get_user_file(user_id)
-    if os.path.exists(file_path):
-        with open(file_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
 
-def _save_memories(user_id, memories):
-    file_path = _get_user_file(user_id)
-    with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(memories, f, ensure_ascii=False, indent=2)
+def _extract_facts(user_text):
+    return extract_user_facts(user_text)
 
-def add_memory(user_id, conversation_text):
-    memories = _load_memories(user_id)
-    memories.append({
-        "timestamp": datetime.datetime.now().isoformat(),
-        "content": conversation_text
-    })
-    # 只保留最近 200 条记忆
-    if len(memories) > 200:
-        memories = memories[-200:]
-    _save_memories(user_id, memories)
-    print(f"  📝 记忆已存储 (user: {user_id})")
 
-def recall_memory(user_id, query, top_k=3):
-    memories = _load_memories(user_id)
-    if not memories:
-        return ""
-    # 简单关键词匹配
-    keywords = query.lower().split()
-    scored = []
-    for mem in memories:
-        content = mem["content"].lower()
-        score = sum(1 for kw in keywords if kw in content)
-        if score > 0:
-            scored.append((score, mem))
-    scored.sort(key=lambda x: x[0], reverse=True)
-    top = scored[:top_k]
-    if top:
-        result = "【以下是你与主人的过往记忆】\n"
-        for _, mem in top:
-            result += f"- {mem['content']}\n"
-        return result
-    return ""
+def recall_memory(user_id, query, top_k=4):
+    profile = load_profile(user_id)
+    memories = recall_layers(profile, query, top_k=top_k)
+    lines = []
+
+    if memories["semantic_memory"]:
+        lines.append("【Semantic Memory：稳定事实】")
+        lines.extend(
+            f"- {item.get('content', '')} (importance={item.get('importance', '')})"
+            for item in memories["semantic_memory"]
+        )
+    if memories["emotional_memory"]:
+        lines.append("【Emotional Memory：情绪模式】")
+        lines.extend(
+            f"- {item.get('content', '')} (importance={item.get('importance', '')})"
+            for item in memories["emotional_memory"]
+        )
+    if memories["episodic_memory"]:
+        lines.append("【Episodic Memory：重要事件】")
+        lines.extend(
+            f"- {item.get('content', '')} (importance={item.get('importance', '')})"
+            for item in memories["episodic_memory"]
+        )
+    if memories["relationship_memory"]:
+        lines.append("【Relationship Memory：关系状态】")
+        lines.append(str(memories["relationship_memory"]))
+    if memories["recent_interactions"]:
+        lines.append("【最近互动】")
+        lines.extend(f"- {item.get('user', item.get('content', ''))}" for item in memories["recent_interactions"])
+
+    return "\n".join(lines)
+
+
+def get_memory_stats(user_id):
+    profile = load_profile(user_id)
+    layers = profile.get("memory_layers", {})
+    return {
+        "semantic_memory": len(layers.get("semantic_memory", [])),
+        "emotional_memory": len(layers.get("emotional_memory", [])),
+        "episodic_memory": len(layers.get("episodic_memory", [])),
+        "relationship_memory": 1 if layers.get("relationship_memory") else 0,
+        "recent_interactions": len(layers.get("recent_interactions", [])),
+    }
+
 
 def clear_memory(user_id):
-    file_path = _get_user_file(user_id)
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        print(f"  🗑️ 已清空 {user_id} 的所有记忆")
+    clear_profile(user_id)
+    print(f"已清空 {user_id} 的 Hollow City 记忆")
