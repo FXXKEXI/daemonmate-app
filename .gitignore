@@ -1,0 +1,17 @@
+.env
+venv/
+__pycache__/
+memory_data/
+*.pyc
+daemon_memory_db/
+huggingface_models/
+
+# Local generated files
+temp_audio.wav
+temp_speech.mp3
+.streamlit/secrets.toml
+
+# Frontend/build artifacts
+web/node_modules/
+web/.next/
+web/out/
